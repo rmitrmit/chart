@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Streams Stock Visualization</title>
+    <style>
+        /* Reset */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; width: 100%; }
+        body { font-family: Arial, sans-serif; }
+
+        /* Navigation Bar */
+        nav { position: fixed; top: 0; left: 0; width: 100%; background: #222; z-index: 10; }
+        nav ul { list-style: none; display: flex; }
+        nav li { flex: 1; }
+        nav a {
+            display: block;
+            padding: 15px;
+            color: #fff;
+            text-align: center;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        nav a.active, nav a:hover { background: #444; }
+
+        /* Control Panel */
+        #controls {
+            position: fixed;
+            top: 50px;
+            right: 10px;
+            background: rgba(255,255,255,0.9);
+            padding: 8px;
+            border-radius: 4px;
+            z-index: 10;
+            font-size: 14px;
+        }
+
+        /* Section Layout */
+        .section {
+            position: absolute;
+            top: 90px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: none;
+        }
+        .section.active { display: block; }
+
+        /* Canvas Fullsize */
+        .chart-container { position: relative; width: 100%; height: calc(100% - 40px); }
+        canvas { width: 100%; height: 100%; }
+
+        /* Hover Info */
+        .hoverInfo {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(255,255,255,0.8);
+            padding: 10px;
+            text-align: center;
+        }
+
+        /* About Us */
+        #about { padding: 60px 20px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <ul>
+            <li><a id="tab-global" class="active">Top Global Songs</a></li>
+            <li><a id="tab-artists">Top Artists</a></li>
+            <li><a id="tab-us">Top in U.S.</a></li>
+            <li><a id="tab-vn">Top in Vietnam</a></li>
+            <li><a id="tab-about">About Us</a></li>
+        </ul>
+    </nav>
+
+    <!-- Control Panel -->
+    <div id="controls">
+        <label for="hoverMode">Hover Mode:</label>
+        <select id="hoverMode">
+            <option value="nearest">Nearest Point</option>
+            <option value="index">Lock to All Lines</option>
+        </select>
+    </div>
+
+    <!-- Sections -->
+    <section id="global" class="section active">
+      <div class="chart-container"><canvas id="globalChart"></canvas></div>
+      <div id="hover-global" class="hoverInfo">Hover over the chart to see details here.</div>
+    </section>
+    <section id="artists" class="section">
+      <div class="chart-container"><canvas id="artistsChart"></canvas></div>
+      <div id="hover-artists" class="hoverInfo">Hover over the chart to see details here.</div>
+    </section>
+    <section id="us" class="section">
+      <div class="chart-container"><canvas id="usChart"></canvas></div>
+      <div id="hover-us" class="hoverInfo">Hover over the chart to see details here.</div>
+    </section>
+    <section id="vn" class="section">
+      <div class="chart-container"><canvas id="vnChart"></canvas></div>
+      <div id="hover-vn" class="hoverInfo">Hover over the chart to see details here.</div>
+    </section>
+    <section id="about" class="section">
+        <div id="about">
+            <h1>About Us</h1>
+            <p>Our project charter here.</p>
+        </div>
+    </section>
+
+    <!-- Chart.js + date adapter -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script>
+        const colors = ['red','blue','green','orange','purple'];
+        const trackSets = {
+  global: [
+    '3KkXRkHbMCARz0aVfEt68P', // "Save Your Tears" - The Weeknd
+    '7ouMYWpwJ422jRcDASZB7P', // "Bad Guy" - Billie Eilish
+    '1zB4vmk8tFRmM9UULNzbLB', // "The Box" - Roddy Ricch
+    '4VqPOruhp5EdPBeR92t6lQ', // "Levitating" - Dua Lipa
+    '6habFhsOp2NvshLv26DqMb'  // "Despacito" - Luis Fonsi
+  ],
+  artists: [
+    '6habFhsOp2NvshLv26DqMb', // "Despacito" - Luis Fonsi
+    '5CtI0qwDJkDQGwXD1H1cLb', // "Closer" - The Chainsmokers
+    '0VjIjW4GlUZAMYd2vXMi3b', // "Uptown Funk" - Mark Ronson (replacing "Havana")
+    '7KXjTSCq5nL1LoYtL7XAwS', // "God's Plan" - Drake
+    '0e7ipJFXiI6G8TlldHqXgF'  // "Blinding Lights" - The Weeknd (replacing "Sunflower")
+  ],
+  us: [
+    '0VjIjW4GlUZAMYd2vXMi3b', // "Uptown Funk" - Mark Ronson
+    '7ytR5pFWmSjzHJIeQkgog4', // "Rockstar" - Post Malone
+    '6RUKPb4LETWmmr3iAEQktW', // "Something Just Like This" - The Chainsmokers
+    '7BKLCZ1jbUBVqRi2FVlTVw', // "Attention" - Charlie Puth
+    '3KkXRkHbMCARz0aVfEt68P'  // "Save Your Tears" - The Weeknd
+  ],
+  vn: [
+    '1zB4vmk8tFRmM9UULNzbLB', // "The Box" - Roddy Ricch
+    '4VqPOruhp5EdPBeR92t6lQ', // "Levitating" - Dua Lipa
+    '6habFhsOp2NvshLv26DqMb', // "Despacito" - Luis Fonsi
+    '5CtI0qwDJkDQGwXD1H1cLb', // "Closer" - The Chainsmokers
+    '0e7ipJFXiI6G8TlldHqXgF'  // "Blinding Lights" - The Weeknd (replacing "Sunflower")
+  ]
+};
+      
+        // Fetch daily streams for one track:
+        async function fetchStreams(trackId) {
+  try {
+    const res = await fetch(`http://localhost:3000/streams/${trackId}`);
+    if (!res.ok) {
+      console.warn(`Failed fetching ${trackId}: ${res.status}`);
+      return []; // Return empty array to skip this track
+    }
+    return res.json(); // [{date: "2025-04-27", streams: 1234567}, …]
+  } catch (err) {
+    console.error(`Error fetching ${trackId}:`, err);
+    return [];
+  }
+}
+      
+        // Create an empty Chart.js line chart
+        function initChart(ctx) {
+  return new Chart(ctx, {
+    type: 'line',
+    data: { labels: [], datasets: [] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'nearest', axis: 'x', intersect: true },
+      scales: {
+        x: {
+          type: 'time',
+          time: { parser: 'yyyy-MM-dd', unit: 'day', tooltipFormat: 'PPP' },
+          title: { display: true, text: 'Date' }
+        },
+        y: { title: { display: true, text: 'Streams' } }
+      },
+      plugins: { tooltip: { enabled: true } },
+      onHover(event, elements) {
+        // Derive hover element ID (e.g., 'hover-global' from 'globalChart')
+        const sectionId = ctx.canvas.id.replace('Chart', '');
+        const hoverId = `hover-${sectionId}`;
+        const info = document.getElementById(hoverId);
+        if (!info) {
+          console.error(`Hover element not found: ${hoverId}`);
+          return;
+        }
+        if (elements.length) {
+          const { datasetIndex, index } = elements[0];
+          const label = this.data.datasets[datasetIndex].label;
+          const value = this.data.datasets[datasetIndex].data[index];
+          const date = this.data.labels[index];
+          info.textContent = `${label} — Date: ${date}, Streams: ${value}`;
+          this.canvas.style.cursor = 'pointer';
+        } else {
+          info.textContent = 'Hover over the chart to see details here.';
+          this.canvas.style.cursor = 'default';
+        }
+      }
+    }
+  });
+}
+      
+window.onload = async () => {
+  // 1) Initialize all four charts
+  const charts = {
+    global: initChart(document.getElementById('globalChart').getContext('2d')),
+    artists: initChart(document.getElementById('artistsChart').getContext('2d')),
+    us: initChart(document.getElementById('usChart').getContext('2d')),
+    vn: initChart(document.getElementById('vnChart').getContext('2d'))
+  };
+
+  // 2) For each section, fetch its 5 tracks and load data
+  for (const [section, ids] of Object.entries(trackSets)) {
+    try {
+      // Fetch each track's series
+      const allSeries = await Promise.all(ids.map(fetchStreams));
+      // Filter out empty series
+      const validSeries = allSeries.filter(series => series.length > 0);
+      const validIndices = allSeries
+        .map((series, i) => (series.length > 0 ? i : -1))
+        .filter(i => i !== -1); // Track indices of valid series
+      if (validSeries.length === 0) {
+        console.warn(`No valid data for section ${section}`);
+        const hoverId = `${section}-hover`;
+        const hoverElement = document.getElementById(hoverId);
+        if (hoverElement) {
+          hoverElement.textContent = `No stream data available for ${section}`;
+        }
+        continue;
+      }
+      // Use the shortest series length to align
+      const N = Math.min(...validSeries.map(s => s.length));
+      // Take the most recent N days, reversed so oldest→newest
+      const sliced = validSeries.map(s => s.slice(0, N).reverse());
+      // Extract the shared date axis
+      const dates = sliced[0].map(d => d.date);
+
+      // Build datasets
+      const datasets = sliced.map((series, i) => ({
+        label: ids[validIndices[i]], // Use track ID from original indices
+        data: series.map(d => d.streams),
+        borderColor: colors[i % colors.length],
+        fill: false,
+        pointRadius: 3,
+        pointHoverRadius: 5
+      }));
+
+      // Plug into Chart.js and render
+      const chart = charts[section];
+      chart.data.labels = dates;
+      chart.data.datasets = datasets;
+      chart.update();
+
+    } catch (err) {
+      console.error(`Error loading ${section}:`, err);
+      const hoverId = `${section}-hover`;
+      const hoverElement = document.getElementById(hoverId);
+      if (hoverElement) {
+        hoverElement.textContent = `Error loading data for ${section}`;
+      }
+    }
+  }
+
+  // 3) Wire up tabs & hover-mode toggle
+  const tabs = [
+    { btn: 'tab-global', sec: 'global' },
+    { btn: 'tab-artists', sec: 'artists' },
+    { btn: 'tab-us', sec: 'us' },
+    { btn: 'tab-vn', sec: 'vn' },
+    { btn: 'tab-about', sec: 'about' }
+  ];
+  tabs.forEach(({ btn, sec }) => {
+    document.getElementById(btn).addEventListener('click', () => {
+      tabs.forEach(t => document.getElementById(t.btn).classList.remove('active'));
+      document.getElementById(btn).classList.add('active');
+      tabs.forEach(t => document.getElementById(t.sec).classList.remove('active'));
+      document.getElementById(sec).classList.add('active');
+    });
+  });
+  document.getElementById('hoverMode').addEventListener('change', e => {
+    const mode = e.target.value;
+    Object.values(charts).forEach(c => {
+      c.options.interaction.mode = mode;
+      c.options.interaction.intersect = (mode === 'nearest');
+      c.update();
+    });
+  });
+};
+      </script>
+      
+</body>
+</html>
