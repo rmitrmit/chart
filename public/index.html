@@ -118,32 +118,32 @@
         const colors = ['red','blue','green','orange','purple'];
         const trackSets = {
   global: [
-    '3KkXRkHbMCARz0aVfEt68P', // "Save Your Tears" - The Weeknd
-    '7ouMYWpwJ422jRcDASZB7P', // "Bad Guy" - Billie Eilish
-    '1zB4vmk8tFRmM9UULNzbLB', // "The Box" - Roddy Ricch
-    '4VqPOruhp5EdPBeR92t6lQ', // "Levitating" - Dua Lipa
-    '6habFhsOp2NvshLv26DqMb'  // "Despacito" - Luis Fonsi
+    '5QO79kh1waicV47BqGRL3g', // Save Your Tears by The Weeknd
+    '2Fxmhks0bxGSBdJ92vM42m', // Bad Guy by Billie Eilish
+    '0nbXyq5TXYPCO7pr3N8S4I', // The Box by Roddy Ricch
+    '39LLxExYz6ewLAcYrzQQyP', // Levitating by Dua Lipa
+    '6habFhsOp2NvshLv26DqMb'  // Despacito by Luis Fonsi
   ],
   artists: [
-    '6habFhsOp2NvshLv26DqMb', // "Despacito" - Luis Fonsi
-    '5CtI0qwDJkDQGwXD1H1cLb', // "Closer" - The Chainsmokers
-    '0VjIjW4GlUZAMYd2vXMi3b', // "Uptown Funk" - Mark Ronson (replacing "Havana")
-    '7KXjTSCq5nL1LoYtL7XAwS', // "God's Plan" - Drake
-    '0e7ipJFXiI6G8TlldHqXgF'  // "Blinding Lights" - The Weeknd (replacing "Sunflower")
+    '6habFhsOp2NvshLv26DqMb', // Despacito by Luis Fonsi
+    '7BKLCZ1jbUBVqRi2FVlTVw', // Closer by The Chainsmokers
+ 
+    '7qiZfU4dY1lWllzX7mPBI3', // Shape of You by Ed Sheeran
+    '0VjIjW4GlUZAMYd2vXMi3b'  // Blinding Lights by The Weeknd
   ],
   us: [
-    '0VjIjW4GlUZAMYd2vXMi3b', // "Uptown Funk" - Mark Ronson
-    '7ytR5pFWmSjzHJIeQkgog4', // "Rockstar" - Post Malone
-    '6RUKPb4LETWmmr3iAEQktW', // "Something Just Like This" - The Chainsmokers
-    '7BKLCZ1jbUBVqRi2FVlTVw', // "Attention" - Charlie Puth
-    '3KkXRkHbMCARz0aVfEt68P'  // "Save Your Tears" - The Weeknd
+
+    '6RUKPb4LETWmmr3iAEQktW', // Something Just Like This by The Chainsmokers and Coldplay
+
+    '5QO79kh1waicV47BqGRL3g', // Save Your Tears by The Weeknd
+    '2Fxmhks0bxGSBdJ92vM42m'  // Bad Guy by Billie Eilish
   ],
   vn: [
-    '1zB4vmk8tFRmM9UULNzbLB', // "The Box" - Roddy Ricch
-    '4VqPOruhp5EdPBeR92t6lQ', // "Levitating" - Dua Lipa
-    '6habFhsOp2NvshLv26DqMb', // "Despacito" - Luis Fonsi
-    '5CtI0qwDJkDQGwXD1H1cLb', // "Closer" - The Chainsmokers
-    '0e7ipJFXiI6G8TlldHqXgF'  // "Blinding Lights" - The Weeknd (replacing "Sunflower")
+    '0nbXyq5TXYPCO7pr3N8S4I', // The Box by Roddy Ricch
+    '39LLxExYz6ewLAcYrzQQyP', // Levitating by Dua Lipa
+    '6habFhsOp2NvshLv26DqMb', // Despacito by Luis Fonsi
+    '7BKLCZ1jbUBVqRi2FVlTVw', // Closer by The Chainsmokers
+    '0VjIjW4GlUZAMYd2vXMi3b'  // Blinding Lights by The Weeknd
   ]
 };
       
@@ -166,22 +166,44 @@
         function initChart(ctx) {
   return new Chart(ctx, {
     type: 'line',
-    data: { labels: [], datasets: [] },
+    data: {
+      labels: [],
+      datasets: []
+    },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      interaction: { mode: 'nearest', axis: 'x', intersect: true },
       scales: {
         x: {
-          type: 'time',
-          time: { parser: 'yyyy-MM-dd', unit: 'day', tooltipFormat: 'PPP' },
-          title: { display: true, text: 'Date' }
+          display: true,
+          title: {
+            display: true,
+            text: 'Date'
+          }
         },
-        y: { title: { display: true, text: 'Streams' } }
+        y: {
+          display: true,
+          title: {
+            display: true,
+            text: 'Streams'
+          },
+          beginAtZero: true
+        }
       },
-      plugins: { tooltip: { enabled: true } },
-      onHover(event, elements) {
-        // Derive hover element ID (e.g., 'hover-global' from 'globalChart')
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top'
+        },
+        tooltip: {
+          enabled: true
+        }
+      },
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      onHover: function(event, elements) {
         const sectionId = ctx.canvas.id.replace('Chart', '');
         const hoverId = `hover-${sectionId}`;
         const info = document.getElementById(hoverId);
@@ -206,7 +228,10 @@
 }
       
 window.onload = async () => {
-  // 1) Initialize all four charts
+  // Colors for chart lines
+  const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'];
+
+  // Initialize all four charts
   const charts = {
     global: initChart(document.getElementById('globalChart').getContext('2d')),
     artists: initChart(document.getElementById('artistsChart').getContext('2d')),
@@ -214,59 +239,75 @@ window.onload = async () => {
     vn: initChart(document.getElementById('vnChart').getContext('2d'))
   };
 
-  // 2) For each section, fetch its 5 tracks and load data
-  for (const [section, ids] of Object.entries(trackSets)) {
-    try {
-      // Fetch each track's series
-      const allSeries = await Promise.all(ids.map(fetchStreams));
-      // Filter out empty series
-      const validSeries = allSeries.filter(series => series.length > 0);
-      const validIndices = allSeries
-        .map((series, i) => (series.length > 0 ? i : -1))
-        .filter(i => i !== -1); // Track indices of valid series
-      if (validSeries.length === 0) {
-        console.warn(`No valid data for section ${section}`);
-        const hoverId = `${section}-hover`;
-        const hoverElement = document.getElementById(hoverId);
-        if (hoverElement) {
-          hoverElement.textContent = `No stream data available for ${section}`;
-        }
-        continue;
+  // For each section, fetch its tracks and load data
+for (const [section, ids] of Object.entries(trackSets)) {
+  try {
+    // Fetch each track's series
+    const allSeries = await Promise.all(ids.map(async (id) => {
+      try {
+        const series = await fetchStreams(id);
+        console.log(`Track ${id} in ${section}: ${series.length} data points`);
+        return series;
+      } catch (err) {
+        console.warn(`Failed to fetch track ${id} in ${section}:`, err.message);
+        return [];
       }
-      // Use the shortest series length to align
-      const N = Math.min(...validSeries.map(s => s.length));
-      // Take the most recent N days, reversed so oldest→newest
-      const sliced = validSeries.map(s => s.slice(0, N).reverse());
-      // Extract the shared date axis
-      const dates = sliced[0].map(d => d.date);
+    }));
+    // Filter out series with fewer than 50 data points
+    const validSeries = allSeries.filter(series => series.length >= 50);
+    const validIndices = allSeries
+      .map((series, i) => (series.length >= 50 ? i : -1))
+      .filter(i => i !== -1); // Track indices of valid series
+    if (validSeries.length === 0) {
+      console.warn(`No valid data for section ${section} (all series have <50 data points)`);
+      const hoverId = `hover-${section}`;
+      const hoverElement = document.getElementById(hoverId);
+      if (hoverElement) {
+        hoverElement.textContent = `No sufficient stream data available for ${section}`;
+      }
+      continue;
+    }
+    // Find the common date range
+    const allDates = [...new Set(validSeries.flatMap(s => s.map(d => d.date)))].sort((a, b) => new Date(a) - new Date(b));
+    console.log(`Section ${section}: ${allDates.length} unique dates`);
 
-      // Build datasets
-      const datasets = sliced.map((series, i) => ({
-        label: ids[validIndices[i]], // Use track ID from original indices
-        data: series.map(d => d.streams),
+    // Build datasets
+    const datasets = validSeries.map((series, i) => {
+      const data = allDates.map(date => {
+        const point = series.find(d => d.date === date);
+        return point ? point.streams : null; // Use null for missing dates
+      });
+      return {
+        label: ids[validIndices[i]],
+        data,
         borderColor: colors[i % colors.length],
         fill: false,
         pointRadius: 3,
-        pointHoverRadius: 5
-      }));
+        pointHoverRadius: 5,
+        spanGaps: true // Connect lines across missing data
+      };
+    });
 
-      // Plug into Chart.js and render
-      const chart = charts[section];
-      chart.data.labels = dates;
-      chart.data.datasets = datasets;
-      chart.update();
+    // Log data for debugging
+    console.log(`Rendering ${section}:`, { dates: allDates.length, datasets: datasets.length });
 
-    } catch (err) {
-      console.error(`Error loading ${section}:`, err);
-      const hoverId = `${section}-hover`;
-      const hoverElement = document.getElementById(hoverId);
-      if (hoverElement) {
-        hoverElement.textContent = `Error loading data for ${section}`;
-      }
+    // Plug into Chart.js and render
+    const chart = charts[section];
+    chart.data.labels = allDates;
+    chart.data.datasets = datasets;
+    chart.update();
+
+  } catch (err) {
+    console.error(`Error loading ${section}:`, err);
+    const hoverId = `hover-${section}`;
+    const hoverElement = document.getElementById(hoverId);
+    if (hoverElement) {
+      hoverElement.textContent = `Error loading data for ${section}`;
     }
   }
+}
 
-  // 3) Wire up tabs & hover-mode toggle
+  // Wire up tabs & hover-mode toggle
   const tabs = [
     { btn: 'tab-global', sec: 'global' },
     { btn: 'tab-artists', sec: 'artists' },

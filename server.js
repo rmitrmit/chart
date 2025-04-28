@@ -13,7 +13,7 @@ app.get('/streams/:trackId', async (req, res) => {
   const url = KWORB_BASE + trackId + '.html';
 
   try {
-    // Add delay to avoid rate-limiting (optional, adjust as needed)
+    // Add delay to avoid rate-limiting
     await new Promise(resolve => setTimeout(resolve, 1000));
     const response = await axios.get(url, { timeout: 5000 });
     const html = response.data;
@@ -45,6 +45,12 @@ app.get('/streams/:trackId', async (req, res) => {
       }
     });
 
+    // Sort data by date in ascending order
+    data.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Log the number of valid rows
+    console.log(`Track ${trackId}: ${data.length} valid rows parsed`);
+
     if (data.length === 0) {
       console.warn(`No valid stream data for track ${trackId} at ${url}`);
       return res.status(404).json({ error: 'No valid stream data available' });
@@ -61,7 +67,7 @@ app.get('/streams/:trackId', async (req, res) => {
     } else {
       console.error('Error details:', err);
     }
-    res.status(500).json({ error: 'Failed to fetch or parse Kworb data' });
+    res.status(500).json({ error: `Failed to fetch or parse Kworb data for track ${trackId}` });
   }
 });
 
