@@ -35,6 +35,12 @@
             z-index: 10;
             font-size: 14px;
         }
+        #controls button {
+            margin-left: 10px;
+            padding: 5px 10px;
+            font-size: 14px;
+            cursor: pointer;
+        }
 
         /* Section Layout */
         .section {
@@ -64,6 +70,17 @@
 
         /* About Us */
         #about { padding: 60px 20px; overflow-y: auto; }
+
+        /* Axis styling for interaction feedback */
+        .chart-container canvas.axis-x-draggable:hover {
+            cursor: ew-resize; /* Horizontal resize cursor for x-axis */
+        }
+        .chart-container canvas.axis-y-draggable:hover {
+            cursor: ns-resize; /* Vertical resize cursor for y-axis */
+        }
+        .chart-container canvas.chart-draggable:hover {
+            cursor: move; /* Move cursor for chart area */
+        }
     </style>
 </head>
 <body>
@@ -85,6 +102,7 @@
             <option value="nearest">Nearest Point</option>
             <option value="index">Lock to All Lines</option>
         </select>
+        <button id="resetZoom">Reset Zoom</button>
     </div>
 
     <!-- Sections -->
@@ -111,228 +129,356 @@
         </div>
     </section>
 
-    <!-- Chart.js + date adapter -->
+    <!-- Chart.js + adapters -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
     <script>
-        const colors = ['red','blue','green','orange','purple'];
+        // Song name mapping based on track IDs
+        const songNames = {
+            '5QO79kh1waicV47BqGRL3g': 'Save Your Tears',
+            '2Fxmhks0bxGSBdJ92vM42m': 'Bad Guy',
+            '0nbXyq5TXYPCO7pr3N8S4I': 'The Box',
+            '1rfofaqEp6yYxu2wvxbYrE': 'Havana',
+            '32OlwWuNpZ2YQUmXH2h3b6': 'Uptown Funk',
+            '7BKLCZ1jbUBVqRi2FVlTVw': 'Closer',
+            '7qiZfU4dY1lWllzX7mPBI3': 'Shape of You',
+            '0VjIjW4GlUZAMYd2vXMi3b': 'Blinding Lights',
+            '6RUKPb4LETWmmr3iAEQktW': 'Something Just Like This'
+        };
+
         const trackSets = {
-  global: [
-    '5QO79kh1waicV47BqGRL3g', // Save Your Tears by The Weeknd
-    '2Fxmhks0bxGSBdJ92vM42m', // Bad Guy by Billie Eilish
-    '0nbXyq5TXYPCO7pr3N8S4I', // The Box by Roddy Ricch
-    '39LLxExYz6ewLAcYrzQQyP', // Levitating by Dua Lipa
-    '6habFhsOp2NvshLv26DqMb'  // Despacito by Luis Fonsi
-  ],
-  artists: [
-    '6habFhsOp2NvshLv26DqMb', // Despacito by Luis Fonsi
-    '7BKLCZ1jbUBVqRi2FVlTVw', // Closer by The Chainsmokers
- 
-    '7qiZfU4dY1lWllzX7mPBI3', // Shape of You by Ed Sheeran
-    '0VjIjW4GlUZAMYd2vXMi3b'  // Blinding Lights by The Weeknd
-  ],
-  us: [
+            global: [
+                '5QO79kh1waicV47BqGRL3g', // Save Your Tears
+                '2Fxmhks0bxGSBdJ92vM42m', // Bad Guy
+                '0nbXyq5TXYPCO7pr3N8S4I', // The Box
+                '1rfofaqEp6yYxu2wvxbYrE', // Havana
+                '32OlwWuNpZ2YQUmXH2h3b6'  // Uptown Funk
+            ],
+            artists: [
+                '32OlwWuNpZ2YQUmXH2h3b6', // Uptown Funk
+                '7BKLCZ1jbUBVqRi2FVlTVw', // Closer
+                '7qiZfU4dY1lWllzX7mPBI3', // Shape of You
+                '0VjIjW4GlUZAMYd2vXMi3b'  // Blinding Lights
+            ],
+            us: [
+                '6RUKPb4LETWmmr3iAEQktW', // Something Just Like This
+                '5QO79kh1waicV47BqGRL3g', // Save Your Tears
+                '2Fxmhks0bxGSBdJ92vM42m'  // Bad Guy
+            ],
+            vn: [
+                '0nbXyq5TXYPCO7pr3N8S4I', // The Box
+                '1rfofaqEp6yYxu2wvxbYrE', // Havana
+                '32OlwWuNpZ2YQUmXH2h3b6', // Uptown Funk
+                '7BKLCZ1jbUBVqRi2FVlTVw', // Closer
+                '0VjIjW4GlUZAMYd2vXMi3b'  // Blinding Lights
+            ]
+        };
 
-    '6RUKPb4LETWmmr3iAEQktW', // Something Just Like This by The Chainsmokers and Coldplay
-
-    '5QO79kh1waicV47BqGRL3g', // Save Your Tears by The Weeknd
-    '2Fxmhks0bxGSBdJ92vM42m'  // Bad Guy by Billie Eilish
-  ],
-  vn: [
-    '0nbXyq5TXYPCO7pr3N8S4I', // The Box by Roddy Ricch
-    '39LLxExYz6ewLAcYrzQQyP', // Levitating by Dua Lipa
-    '6habFhsOp2NvshLv26DqMb', // Despacito by Luis Fonsi
-    '7BKLCZ1jbUBVqRi2FVlTVw', // Closer by The Chainsmokers
-    '0VjIjW4GlUZAMYd2vXMi3b'  // Blinding Lights by The Weeknd
-  ]
-};
-      
-        // Fetch daily streams for one track:
+        // Fetch weekly streams for one track
         async function fetchStreams(trackId) {
-  try {
-    const res = await fetch(`http://localhost:3000/streams/${trackId}`);
-    if (!res.ok) {
-      console.warn(`Failed fetching ${trackId}: ${res.status}`);
-      return []; // Return empty array to skip this track
-    }
-    return res.json(); // [{date: "2025-04-27", streams: 1234567}, …]
-  } catch (err) {
-    console.error(`Error fetching ${trackId}:`, err);
-    return [];
-  }
-}
-      
+            try {
+                const res = await fetch(`http://localhost:3000/streams/${trackId}`);
+                if (!res.ok) {
+                    console.warn(`Failed fetching ${trackId} (${songNames[trackId] || 'Unknown'}): ${res.status}`);
+                    return [];
+                }
+                const data = await res.json();
+                // Sort data by weekStart
+                data.sort((a, b) => new Date(a.weekStart) - new Date(b.weekStart));
+                // Log data points for debugging
+                console.log(`Data for ${trackId} (${songNames[trackId] || 'Unknown'}):`, data.map(d => ({
+                    week: d.weekStart,
+                    streams: d.streams
+                })));
+                return data;
+            } catch (err) {
+                console.error(`Error fetching ${trackId} (${songNames[trackId] || 'Unknown'}):`, err);
+                return [];
+            }
+        }
+
         // Create an empty Chart.js line chart
         function initChart(ctx) {
-  return new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: [],
-      datasets: []
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: {
-          display: true,
-          title: {
-            display: true,
-            text: 'Date'
-          }
-        },
-        y: {
-          display: true,
-          title: {
-            display: true,
-            text: 'Streams'
-          },
-          beginAtZero: true
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: []
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'week',
+                                displayFormats: {
+                                    week: 'MMM yyyy'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Week Start'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Weekly Streams'
+                            },
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return (value / 1000) + 'k'; // Format in thousands
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            enabled: true,
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.dataset.label || '';
+                                    const value = context.parsed.y;
+                                    return `${label}: ${value.toLocaleString()} streams`;
+                                }
+                            }
+                        },
+                        zoom: {
+                            zoom: {
+                                wheel: {
+                                    enabled: true,
+                                    speed: 0.05 // Slower wheel zoom for precision
+                                },
+                                pinch: {
+                                    enabled: true
+                                },
+                                drag: {
+                                    enabled: true,
+                                    modifierKey: 'ctrl' // Ctrl + drag for chart-wide zooming
+                                },
+                                mode: 'xy'
+                            },
+                            pan: {
+                                enabled: true,
+                                mode: 'xy',
+                                speed: 15, // Faster panning for responsiveness
+                                threshold: 2 // Lower threshold for immediate drag response
+                            },
+                            limits: {
+                                y: { min: 0 }, // Prevent panning below y=0
+                                x: { min: 'original', max: 'original' } // Respect original x-axis bounds
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    onHover: function(event, elements, chart) {
+                        const canvas = event.native.target;
+                        const { x, y } = event;
+                        const { left, right, bottom } = canvas.getBoundingClientRect();
+                        const isXAxis = y > bottom - 50; // Bottom 50px for x-axis
+                        const isYAxis = x < left + 50; // Left 50px for y-axis
+                        canvas.classList.remove('axis-x-draggable', 'axis-y-draggable', 'chart-draggable');
+                        if (isXAxis) {
+                            canvas.classList.add('axis-x-draggable');
+                        } else if (isYAxis) {
+                            canvas.classList.add('axis-y-draggable');
+                        } else {
+                            canvas.classList.add('chart-draggable');
+                        }
+                        if (elements.length) {
+                            const { datasetIndex, index } = elements[0];
+                            const label = chart.data.datasets[datasetIndex].label;
+                            const value = chart.data.datasets[datasetIndex].data[index];
+                            const date = chart.data.labels[index];
+                            const sectionId = ctx.canvas.id.replace('Chart', '');
+                            const hoverId = `hover-${sectionId}`;
+                            const info = document.getElementById(hoverId);
+                            if (info) {
+                                info.textContent = `${label} — Week: ${date}, Streams: ${value.toLocaleString()}`;
+                            }
+                            canvas.style.cursor = 'pointer';
+                        }
+                    },
+                    onClick: function(event, elements, chart) {
+                        // Prevent default click behavior when dragging
+                        if (chart.isDragging) {
+                            event.preventDefault();
+                        }
+                    }
+                },
+                plugins: [{
+                    id: 'customAxisDrag',
+                    beforeEvent(chart, args) {
+                        const { event } = args;
+                        const canvas = chart.canvas;
+                        const { x, y } = event;
+                        const { left, right, bottom } = canvas.getBoundingClientRect();
+                        const isXAxis = y > bottom - 50;
+                        const isYAxis = x < left + 50;
+
+                        if (event.type === 'mousedown') {
+                            chart.isDragging = true;
+                            chart.dragStartX = x;
+                            chart.dragStartY = y;
+                            chart.dragAxis = isXAxis ? 'x' : isYAxis ? 'y' : 'xy';
+                        } else if (event.type === 'mousemove' && chart.isDragging) {
+                            const deltaX = x - chart.dragStartX;
+                            const deltaY = chart.dragStartY - y; // Invert y for natural drag
+                            if (chart.dragAxis === 'x' || chart.dragAxis === 'xy') {
+                                if (event.ctrlKey) {
+                                    // Ctrl + drag on x-axis for zooming
+                                    const zoomFactor = deltaX > 0 ? 1.02 : 0.98;
+                                    chart.zoom(zoomFactor, { x: x });
+                                } else {
+                                    // Drag for panning
+                                    chart.pan({ x: -deltaX }, undefined, 'default');
+                                }
+                            }
+                            if (chart.dragAxis === 'y' || chart.dragAxis === 'xy') {
+                                if (event.ctrlKey) {
+                                    // Ctrl + drag on y-axis for zooming
+                                    const zoomFactor = deltaY > 0 ? 1.02 : 0.98;
+                                    chart.zoom(zoomFactor, { y: y });
+                                } else {
+                                    // Drag for panning
+                                    chart.pan({ y: deltaY }, undefined, 'default');
+                                }
+                            }
+                            chart.dragStartX = x;
+                            chart.dragStartY = y;
+                        } else if (event.type === 'mouseup') {
+                            chart.isDragging = false;
+                            chart.dragAxis = null;
+                        }
+                    }
+                }]
+            });
         }
-      },
-      plugins: {
-        legend: {
-          display: true,
-          position: 'top'
-        },
-        tooltip: {
-          enabled: true
-        }
-      },
-      interaction: {
-        mode: 'index',
-        intersect: false
-      },
-      onHover: function(event, elements) {
-        const sectionId = ctx.canvas.id.replace('Chart', '');
-        const hoverId = `hover-${sectionId}`;
-        const info = document.getElementById(hoverId);
-        if (!info) {
-          console.error(`Hover element not found: ${hoverId}`);
-          return;
-        }
-        if (elements.length) {
-          const { datasetIndex, index } = elements[0];
-          const label = this.data.datasets[datasetIndex].label;
-          const value = this.data.datasets[datasetIndex].data[index];
-          const date = this.data.labels[index];
-          info.textContent = `${label} — Date: ${date}, Streams: ${value}`;
-          this.canvas.style.cursor = 'pointer';
-        } else {
-          info.textContent = 'Hover over the chart to see details here.';
-          this.canvas.style.cursor = 'default';
-        }
-      }
-    }
-  });
-}
-      
-window.onload = async () => {
-  // Colors for chart lines
-  const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'];
 
-  // Initialize all four charts
-  const charts = {
-    global: initChart(document.getElementById('globalChart').getContext('2d')),
-    artists: initChart(document.getElementById('artistsChart').getContext('2d')),
-    us: initChart(document.getElementById('usChart').getContext('2d')),
-    vn: initChart(document.getElementById('vnChart').getContext('2d'))
-  };
+        // Colors for chart lines
+        const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'];
 
-  // For each section, fetch its tracks and load data
-for (const [section, ids] of Object.entries(trackSets)) {
-  try {
-    // Fetch each track's series
-    const allSeries = await Promise.all(ids.map(async (id) => {
-      try {
-        const series = await fetchStreams(id);
-        console.log(`Track ${id} in ${section}: ${series.length} data points`);
-        return series;
-      } catch (err) {
-        console.warn(`Failed to fetch track ${id} in ${section}:`, err.message);
-        return [];
-      }
-    }));
-    // Filter out series with fewer than 50 data points
-    const validSeries = allSeries.filter(series => series.length >= 50);
-    const validIndices = allSeries
-      .map((series, i) => (series.length >= 50 ? i : -1))
-      .filter(i => i !== -1); // Track indices of valid series
-    if (validSeries.length === 0) {
-      console.warn(`No valid data for section ${section} (all series have <50 data points)`);
-      const hoverId = `hover-${section}`;
-      const hoverElement = document.getElementById(hoverId);
-      if (hoverElement) {
-        hoverElement.textContent = `No sufficient stream data available for ${section}`;
-      }
-      continue;
-    }
-    // Find the common date range
-    const allDates = [...new Set(validSeries.flatMap(s => s.map(d => d.date)))].sort((a, b) => new Date(a) - new Date(b));
-    console.log(`Section ${section}: ${allDates.length} unique dates`);
+        window.onload = async () => {
+            // Initialize all four charts
+            const charts = {
+                global: initChart(document.getElementById('globalChart').getContext('2d')),
+                artists: initChart(document.getElementById('artistsChart').getContext('2d')),
+                us: initChart(document.getElementById('usChart').getContext('2d')),
+                vn: initChart(document.getElementById('vnChart').getContext('2d'))
+            };
 
-    // Build datasets
-    const datasets = validSeries.map((series, i) => {
-      const data = allDates.map(date => {
-        const point = series.find(d => d.date === date);
-        return point ? point.streams : null; // Use null for missing dates
-      });
-      return {
-        label: ids[validIndices[i]],
-        data,
-        borderColor: colors[i % colors.length],
-        fill: false,
-        pointRadius: 3,
-        pointHoverRadius: 5,
-        spanGaps: true // Connect lines across missing data
-      };
-    });
+            // For each section, fetch its tracks and load data
+            for (const [section, ids] of Object.entries(trackSets)) {
+                try {
+                    // Fetch each track's series
+                    const allSeries = await Promise.all(ids.map(async (id) => {
+                        try {
+                            const series = await fetchStreams(id);
+                            console.log(`Track ${id} (${songNames[id] || 'Unknown'}) in ${section}: ${series.length} data points`);
+                            return series;
+                        } catch (err) {
+                            console.warn(`Failed to fetch track ${id} (${songNames[id] || 'Unknown'}) in ${section}:`, err.message);
+                            return [];
+                        }
+                    }));
+                    // Filter out series with fewer than 1 data point (week)
+                    const validSeries = allSeries.filter(series => series.length >= 1);
+                    const validIndices = allSeries
+                        .map((series, i) => (series.length >= 1 ? i : -1))
+                        .filter(i => i !== -1); // Track indices of valid series
+                    if (validSeries.length === 0) {
+                        console.warn(`No valid data for section ${section} (all series have <1 week)`);
+                        const hoverId = `hover-${section}`;
+                        const hoverElement = document.getElementById(hoverId);
+                        if (hoverElement) {
+                            hoverElement.textContent = `No sufficient stream data available for ${section}`;
+                        }
+                        continue;
+                    }
+                    // Find the common date range
+                    const allDates = [...new Set(validSeries.flatMap(s => s.map(d => d.weekStart)))].sort((a, b) => new Date(a) - new Date(b));
+                    console.log(`Section ${section}: ${allDates.length} unique weeks`);
 
-    // Log data for debugging
-    console.log(`Rendering ${section}:`, { dates: allDates.length, datasets: datasets.length });
+                    // Build datasets
+                    const datasets = validSeries.map((series, i) => {
+                        const trackId = ids[validIndices[i]];
+                        const data = allDates.map(date => {
+                            const point = series.find(d => d.weekStart === date);
+                            return point ? point.streams : null; // Use null for missing weeks
+                        });
+                        return {
+                            label: songNames[trackId] || trackId, // Use song name or fall back to ID
+                            data,
+                            borderColor: colors[i % colors.length],
+                            fill: false,
+                            pointRadius: 3,
+                            pointHoverRadius: 5,
+                            spanGaps: true // Connect lines across missing data
+                        };
+                    });
 
-    // Plug into Chart.js and render
-    const chart = charts[section];
-    chart.data.labels = allDates;
-    chart.data.datasets = datasets;
-    chart.update();
+                    // Log data for debugging
+                    console.log(`Rendering ${section}:`, { dates: allDates.length, datasets: datasets.length, tracks: datasets.map(d => d.label) });
 
-  } catch (err) {
-    console.error(`Error loading ${section}:`, err);
-    const hoverId = `hover-${section}`;
-    const hoverElement = document.getElementById(hoverId);
-    if (hoverElement) {
-      hoverElement.textContent = `Error loading data for ${section}`;
-    }
-  }
-}
+                    // Plug into Chart.js and render
+                    const chart = charts[section];
+                    chart.data.labels = allDates;
+                    chart.data.datasets = datasets;
+                    chart.update();
 
-  // Wire up tabs & hover-mode toggle
-  const tabs = [
-    { btn: 'tab-global', sec: 'global' },
-    { btn: 'tab-artists', sec: 'artists' },
-    { btn: 'tab-us', sec: 'us' },
-    { btn: 'tab-vn', sec: 'vn' },
-    { btn: 'tab-about', sec: 'about' }
-  ];
-  tabs.forEach(({ btn, sec }) => {
-    document.getElementById(btn).addEventListener('click', () => {
-      tabs.forEach(t => document.getElementById(t.btn).classList.remove('active'));
-      document.getElementById(btn).classList.add('active');
-      tabs.forEach(t => document.getElementById(t.sec).classList.remove('active'));
-      document.getElementById(sec).classList.add('active');
-    });
-  });
-  document.getElementById('hoverMode').addEventListener('change', e => {
-    const mode = e.target.value;
-    Object.values(charts).forEach(c => {
-      c.options.interaction.mode = mode;
-      c.options.interaction.intersect = (mode === 'nearest');
-      c.update();
-    });
-  });
-};
-      </script>
-      
+                } catch (err) {
+                    console.error(`Error loading ${section}:`, err);
+                    const hoverId = `hover-${section}`;
+                    const hoverElement = document.getElementById(hoverId);
+                    if (hoverElement) {
+                        hoverElement.textContent = `Error loading data for ${section}`;
+                    }
+                }
+            }
+
+            // Wire up tabs & hover-mode toggle
+            const tabs = [
+                { btn: 'tab-global', sec: 'global' },
+                { btn: 'tab-artists', sec: 'artists' },
+                { btn: 'tab-us', sec: 'us' },
+                { btn: 'tab-vn', sec: 'vn' },
+                { btn: 'tab-about', sec: 'about' }
+            ];
+            tabs.forEach(({ btn, sec }) => {
+                document.getElementById(btn).addEventListener('click', () => {
+                    tabs.forEach(t => document.getElementById(t.btn).classList.remove('active'));
+                    document.getElementById(btn).classList.add('active');
+                    tabs.forEach(t => document.getElementById(t.sec).classList.remove('active'));
+                    document.getElementById(sec).classList.add('active');
+                });
+            });
+            document.getElementById('hoverMode').addEventListener('change', e => {
+                const mode = e.target.value;
+                Object.values(charts).forEach(c => {
+                    c.options.interaction.mode = mode;
+                    c.options.interaction.intersect = (mode === 'nearest');
+                    c.update();
+                });
+            });
+
+            // Wire up reset zoom button
+            document.getElementById('resetZoom').addEventListener('click', () => {
+                Object.values(charts).forEach(chart => {
+                    chart.resetZoom();
+                });
+            });
+        };
+    </script>
 </body>
 </html>
