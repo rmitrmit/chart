@@ -129,6 +129,18 @@
         </div>
     </section>
 
+    <!-- Popup Song Info -->
+    <div id="songPopup" style="display:none; position:fixed; left:0; right:0; bottom:-300px; z-index:100; transition:bottom 0.3s;">
+      <div style="margin:auto; max-width:350px; background:#fff; border-radius:18px 18px 0 0; box-shadow:0 -2px 16px rgba(0,0,0,0.18); padding:24px 20px 20px 20px; display:flex; align-items:center; gap:18px;">
+        <div style="width:80px; height:80px; background:#ccc; border-radius:12px; flex-shrink:0;"></div>
+        <div style="flex:1;">
+          <div id="popupSongName" style="font-size:1.3em; font-weight:bold; margin-bottom:8px;">Tên bài hát</div>
+          <div id="popupSongArtist" style="font-size:1em; color:#444;">Ca sĩ</div>
+        </div>
+        <button id="closePopupBtn" style="background:none; border:none; font-size:1.5em; cursor:pointer; color:#888;">&times;</button>
+      </div>
+    </div>
+
     <!-- Chart.js + adapters -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
@@ -145,6 +157,19 @@
             '7qiZfU4dY1lWllzX7mPBI3': 'Shape of You',
             '0VjIjW4GlUZAMYd2vXMi3b': 'Blinding Lights',
             '6RUKPb4LETWmmr3iAEQktW': 'Something Just Like This'
+        };
+
+        // Thêm mapping ca sĩ
+        const songArtists = {
+            '5QO79kh1waicV47BqGRL3g': 'The Weeknd',
+            '2Fxmhks0bxGSBdJ92vM42m': 'Billie Eilish',
+            '0nbXyq5TXYPCO7pr3N8S4I': 'Roddy Ricch',
+            '1rfofaqEp6yYxu2wvxbYrE': 'Camila Cabello',
+            '32OlwWuNpZ2YQUmXH2h3b6': 'Mark Ronson ft. Bruno Mars',
+            '7BKLCZ1jbUBVqRi2FVlTVw': 'The Chainsmokers ft. Halsey',
+            '7qiZfU4dY1lWllzX7mPBI3': 'Ed Sheeran',
+            '0VjIjW4GlUZAMYd2vXMi3b': 'The Weeknd',
+            '6RUKPb4LETWmmr3iAEQktW': 'The Chainsmokers & Coldplay'
         };
 
         const trackSets = {
@@ -311,9 +336,20 @@
                         }
                     },
                     onClick: function(event, elements, chart) {
-                        // Prevent default click behavior when dragging
                         if (chart.isDragging) {
                             event.preventDefault();
+                        }
+                        if (elements.length) {
+                            const { datasetIndex } = elements[0];
+                            const dataset = chart.data.datasets[datasetIndex];
+                            const realTrackId = dataset.trackId; // Lấy đúng trackId
+                            if (realTrackId) {
+                                document.getElementById('popupSongName').textContent = songNames[realTrackId] || 'Tên bài hát';
+                                document.getElementById('popupSongArtist').textContent = songArtists[realTrackId] || 'Ca sĩ';
+                                const popup = document.getElementById('songPopup');
+                                popup.style.display = 'block';
+                                setTimeout(()=>{popup.style.bottom = '0';}, 10);
+                            }
                         }
                     }
                 },
@@ -424,7 +460,8 @@
                             fill: false,
                             pointRadius: 3,
                             pointHoverRadius: 5,
-                            spanGaps: true // Connect lines across missing data
+                            spanGaps: true, // Connect lines across missing data
+                            trackId // Thêm thuộc tính trackId
                         };
                     });
 
@@ -476,6 +513,22 @@
             document.getElementById('resetZoom').addEventListener('click', () => {
                 Object.values(charts).forEach(chart => {
                     chart.resetZoom();
+                });
+            });
+
+            // Đảm bảo sự kiện đóng popup luôn hoạt động
+            window.addEventListener('DOMContentLoaded', function() {
+                const popup = document.getElementById('songPopup');
+                const closeBtn = document.getElementById('closePopupBtn');
+                closeBtn.onclick = function() {
+                    popup.style.bottom = '-300px';
+                    setTimeout(()=>{popup.style.display = 'none';}, 300);
+                };
+                popup.addEventListener('click', function(e) {
+                    if (e.target === popup) {
+                        popup.style.bottom = '-300px';
+                        setTimeout(()=>{popup.style.display = 'none';}, 300);
+                    }
                 });
             });
         };
