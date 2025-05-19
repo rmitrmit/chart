@@ -1,13 +1,10 @@
-import express from 'express';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-
+// Kworb base URL
 const KWORB_BASE = 'https://kworb.net/spotify/track/';
 
-// Helper functions from your code
+// Normalize YYYY/MM/DD or YYYY-MM-DD
 function normalizeDate(dateStr) {
   const altFormat = dateStr.replace(/\//g, '-');
   const regex = /^\d{4}-\d{2}-\d{2}$/;
@@ -24,10 +21,10 @@ function parseStreamCount(countText) {
   return isNaN(count) ? null : count;
 }
 
-// Your main handler as an Express route
-app.get('/api/streams/:trackId', async (req, res) => {
-  const { trackId } = req.params;
-  const url = `${KWORB_BASE}${trackId}.html`;
+// ✅ Main handler for Vercel Serverless Function
+export default async function handler(req, res) {
+  const { trackId } = req.query;
+  const url = ${KWORB_BASE}${trackId}.html;
 
   try {
     const response = await axios.get(url, { timeout: 10000 });
@@ -91,11 +88,13 @@ app.get('/api/streams/:trackId', async (req, res) => {
 
     res.status(200).json(weeklyData);
   } catch (err) {
-    console.error(`Error fetching ${url}:`, err.message);
-    res.status(500).json({ error: `Failed to fetch or parse Kworb data for track ${trackId}` });
+    console.error(Error fetching ${url}:, err.message);
+    res.status(500).json({ error: Failed to fetch or parse Kworb data for track ${trackId} });
   }
-});
+}
+
+const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
