@@ -1,10 +1,13 @@
+import express from 'express';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
-// Kworb base URL
+const app = express();
+const PORT = process.env.PORT || 3000;
+
 const KWORB_BASE = 'https://kworb.net/spotify/track/';
 
-// Normalize YYYY/MM/DD or YYYY-MM-DD
+// Helper functions from your code
 function normalizeDate(dateStr) {
   const altFormat = dateStr.replace(/\//g, '-');
   const regex = /^\d{4}-\d{2}-\d{2}$/;
@@ -21,9 +24,9 @@ function parseStreamCount(countText) {
   return isNaN(count) ? null : count;
 }
 
-// ✅ Main handler for Vercel Serverless Function
-export default async function handler(req, res) {
-  const { trackId } = req.query;
+// Your main handler as an Express route
+app.get('/api/streams/:trackId', async (req, res) => {
+  const { trackId } = req.params;
   const url = `${KWORB_BASE}${trackId}.html`;
 
   try {
@@ -91,4 +94,8 @@ export default async function handler(req, res) {
     console.error(`Error fetching ${url}:`, err.message);
     res.status(500).json({ error: `Failed to fetch or parse Kworb data for track ${trackId}` });
   }
-}
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
