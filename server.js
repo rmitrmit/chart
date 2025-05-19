@@ -1,5 +1,5 @@
 import axios from 'axios';
-import cheerio from 'cheerio';
+import * as cheerio from 'cheerio';
 
 // Kworb base URL
 const KWORB_BASE = 'https://kworb.net/spotify/track/';
